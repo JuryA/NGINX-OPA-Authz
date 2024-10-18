@@ -1,17 +1,16 @@
-# Questa versione del server supporta solo delle POST ad esso praticamente. 
-# E il nostro web server adempisce esattamente a questo, ovvero invia a OPA i dati della 
-# richiesta, per controllare se passa oppure no, attraverso una POST. 
+# This server version only supports POST requests, essentially.
+# Our web server fulfills exactly this function, meaning it sends the request data to OPA
+# to check whether it passes or not, via a POST request.
 
 package server_rules
 
-import input.http_method as http_method    # il metodo HTTP che la nostra regola deve analizzare.
-                        # Rego non ha delle funzioni builtin per fare l'handling del HTTP requests (giustamente)
-                        # siccome questi in teoria li deve ricevere da un server esterno
+import input.http_method as http_method    # The HTTP method that our rule needs to analyze.
+                        # Rego does not have built-in functions for handling HTTP requests (which makes sense),
+                        # as these are theoretically expected to come from an external server.
 
-default allow = false # Impedisce, se non trova la regola, di dare accesso (default deny)
+default allow = false  # Prevents access if no matching rule is found (default deny).
 
-
-# questo è il caso base
+# This is the basic case.
 allow {
     input.uses_jwt == "false"
     check_permission
@@ -24,20 +23,20 @@ check_permission {
 
 # -------------------JWT Rules------------------------
 
-# questo è il caso in cui abbiamo un jwt
+# This is the case where a JWT is present.
 allow {
     input.uses_jwt == "true"
     allow_jwt
     # token_is_valid
 }
 
-# allow è la regola base del nostra regola
+# "allow" is the base rule of our policy.
 allow_jwt {
     check_permission_jwt
     check_time_valid
 }
 
-# controlla se i ruoli dell'utente sono coerenti con l'operazione che vuole svolgere
+# Checks whether the user's roles are consistent with the operation they want to perform.
 check_permission_jwt {
     data.roles[payload["wlcg.groups"][_]][_]
             == input.operation
@@ -45,15 +44,15 @@ check_permission_jwt {
 
 check_time_valid {
     payload.exp >= time.now_ns()
-} else { # caso in cui il token non scade mai 
+} else {  # Case where the token never expires.
     payload.iat == payload.exp
     payload.exp == payload.nbf
 }
 
-# ""funzione"" per la validazione ed estrazione delle informazioni nel Bearer
+# "Function" to validate and extract information from the Bearer token.
 payload := p {
     v := input.token
-	startswith(v, "Bearer ") # controllo che sia effettivamente il bearer_token
-	t := substring(v, count("Bearer "), -1) # prendo il token
+    startswith(v, "Bearer ")  # Ensures it is indeed a Bearer token.
+    t := substring(v, count("Bearer "), -1)  # Extracts the token.
     [_, p, _] := io.jwt.decode(t)
 }

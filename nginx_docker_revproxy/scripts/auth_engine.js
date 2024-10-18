@@ -1,34 +1,34 @@
 function authorize_operation(r) {
 
-    // dati da inviare a OPA
-    let opa_data = {
-        "operation" : r.headersIn["X-Operation"],
-        "role" : "/" + r.headersIn["X-Role"],
-        "uses_jwt" : r.headersIn["X-EnableJWT"],
-        "token" : r.headersIn["Authorization"]
-    }
+  // Data to send to OPA
+  let opa_data = {
+      "operation" : r.headersIn["X-Operation"],
+      "role" : "/" + r.headersIn["X-Role"],
+      "uses_jwt" : r.headersIn["X-EnableJWT"],
+      "token" : r.headersIn["Authorization"]
+  }
 
-    // pacchetto HTTP da inviare ad OPA, in modo che possa leggere correttamente i dati
-    var opts = {
-        method: "POST",
-        body: JSON.stringify(opa_data)
-    };
-    
-    // gestisce la risposta di OPA
-    r.subrequest("/_opa", opts, function(opa_res) {
-        r.log("OPA Responded with status " + opa_res.status);
-        r.log(JSON.stringify(opa_res));
+  // HTTP package to send to OPA so it can correctly interpret the data
+  var opts = {
+      method: "POST",
+      body: JSON.stringify(opa_data)
+  };
 
-        var body = JSON.parse(opa_res.responseText);
-        
-        // controlla la risposta di OPA (che è in JSON)
-        if (!body || !body.allow) {
-            r.return(403);
-            return;
-        }
+  // Handles OPA's response
+  r.subrequest("/_opa", opts, function(opa_res) {
+      r.log("OPA Responded with status " + opa_res.status);
+      r.log(JSON.stringify(opa_res));
 
-        r.return(opa_res.status); // Altrimenti, ritorna il codice dato da OPA (che solitamente è 200)
-    });
+      var body = JSON.parse(opa_res.responseText);
+
+      // Checks OPA's response (which is in JSON)
+      if (!body || !body.allow) {
+          r.return(403);
+          return;
+      }
+
+      r.return(opa_res.status); // Otherwise, returns the status code provided by OPA (usually 200)
+  });
 
 }
 
